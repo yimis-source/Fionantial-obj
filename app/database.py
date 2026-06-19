@@ -34,6 +34,7 @@ def init_db():
             usuario_nombre TEXT,
             canal TEXT DEFAULT 'whatsapp',
             estado TEXT DEFAULT 'activa',
+            resumen TEXT,
             creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             actualizado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (tenant_id) REFERENCES tenants(id)
@@ -81,6 +82,29 @@ def init_db():
             respuesta TEXT NOT NULL,
             categoria TEXT DEFAULT 'general',
             activo INTEGER DEFAULT 1,
+            creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE TABLE IF NOT EXISTS user_profiles (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            usuario_id TEXT NOT NULL UNIQUE,
+            usuario_nombre TEXT,
+            preferencias TEXT DEFAULT '{}',
+            metricas_interes TEXT DEFAULT '[]',
+            moneda TEXT DEFAULT 'COP',
+            modo_respuesta TEXT DEFAULT 'normal',
+            datos_adicionales TEXT DEFAULT '{}',
+            creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            actualizado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE TABLE IF NOT EXISTS metricas (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            conversacion_id INTEGER,
+            usuario_id TEXT,
+            tipo TEXT NOT NULL,
+            clave TEXT NOT NULL,
+            valor TEXT,
             creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
     """)
@@ -181,3 +205,48 @@ def buscar_faq(pregunta):
             (f"%{pregunta}%",)
         )
         return [dict(row) for row in cursor.fetchall()]
+
+
+def obtener_perfil_usuario(usuario_id: str) -> dict | None:
+    with get_db() as conn:
+        cursor = conn.execute(
+            "SELECT preferencias, metricas_interes, moneda, modo_respuesta FROM user_profiles WHERE usuario_id = ?",
+            (usuario_id,)
+        )
+        row = cursor.fetchone()
+        if row:
+            return {
+                "preferencias": json.loads(row["preferencias"]),
+                "metricas_interes": json.loads(row["metricas_interes"]),
+                "moneda": row["moneda"],
+                "modo_respuesta": row["modo_respuesta"],
+            }
+    return None
+
+
+def guardar_resumen_conversacion(conversacion_id: int, resumen: str):
+    with get_db() as conn:
+        conn.execute(
+            "UPDATE conversaciones SET resumen = ? WHERE id = ?",
+            (resumen, conversacion_id)
+        )
+        conn.commit()
+
+
+def obtener_resumen_conversacion(conversacion_id: int) -> str | None:
+    with get_db() as conn:
+        cursor = conn.execute(
+            "SELECT resumen FROM conversaciones WHERE id = ?",
+            (conversacion_id,)
+        )
+        row = cursor.fetchone()
+        return row["resumen"] if row and row["resumen"] else None
+
+
+def guardar_metrica(conversacion_id, usuario_id, tipo, clave, valor):
+    with get_db() as conn:
+        conn.execute(
+            "INSERT INTO metricas (conversacion_id, usuario_id, tipo, clave, valor) VALUES (?, ?, ?, ?, ?)",
+            (conversacion_id, usuario_id, tipo, clave, str(valor))
+        )
+        conn.commit()

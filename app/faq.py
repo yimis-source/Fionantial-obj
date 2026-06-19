@@ -118,7 +118,7 @@ def cargar_faqs():
     return FAQS
 
 
-def buscar_faq_similar(mensaje, umbral=0.3):
+def buscar_faq_similar(mensaje, umbral=0.55):
     mensaje = mensaje.lower().strip()
     mejores = []
 
@@ -136,4 +136,4 @@ def buscar_faq_similar(mensaje, umbral=0.3):
             mejores.append((puntaje, faq))
 
     mejores.sort(key=lambda x: x[0], reverse=True)
-    return [faq for _, faq in mejores[:3]] if mejores else []
+    return [faq for _, faq in mejores[:1]] if mejores else []

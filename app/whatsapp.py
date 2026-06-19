@@ -5,7 +5,6 @@ from twilio.twiml.messaging_response import MessagingResponse
 
 from app.config import TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_WHATSAPP_NUMBER
 from app.database import guardar_log
-from tools.registry import _IMAGES_TO_SEND
 
 _twilio_client = None
 
@@ -17,17 +16,10 @@ def get_twilio_client():
     return _twilio_client
 
 
-def enviar_mensaje_whatsapp(destino: str, mensaje: str) -> bool:
+def enviar_mensaje_whatsapp(destino: str, mensaje: str, imagenes: list[str] | None = None) -> bool:
     client = get_twilio_client()
 
-    # Scan response for mermaid.ink URLs
-    mermaid_urls = re.findall(r'https://mermaid\.ink/img/[^\s\)]+', mensaje)
-    for url in mermaid_urls:
-        if url not in _IMAGES_TO_SEND:
-            _IMAGES_TO_SEND.append(url)
-
-    # Send pending images
-    for img in list(_IMAGES_TO_SEND):
+    for img in (imagenes or []):
         try:
             if client:
                 client.messages.create(
@@ -39,18 +31,8 @@ def enviar_mensaje_whatsapp(destino: str, mensaje: str) -> bool:
                 print(f"[WhatsApp Simulado] Imagen: {img}")
         except Exception as e:
             guardar_log(0, "whatsapp_media_error", str(e), "error")
-        finally:
-            _IMAGES_TO_SEND.remove(img)
-            if not img.startswith("http"):
-                try:
-                    os.unlink(img)
-                except Exception:
-                    pass
 
-    # Clean image markers from response text
-    texto_limpio = re.sub(r'IMAGEN_GENERADA:\S+', '', mensaje)
-    texto_limpio = re.sub(r'IMAGEN_PATH:\S+', '', texto_limpio)
-    texto_limpio = re.sub(r'https://mermaid\.ink/img/\S+', '📊', texto_limpio)
+    texto_limpio = re.sub(r'```mermaid\n.*?\n```', '📊', mensaje, flags=re.DOTALL)
     texto_limpio = re.sub(r'\n{3,}', '\n\n', texto_limpio).strip()
 
     if not texto_limpio:
@@ -73,9 +55,7 @@ def enviar_mensaje_whatsapp(destino: str, mensaje: str) -> bool:
 
 
 def generar_respuesta_twiml(mensaje: str) -> str:
-    texto_limpio = re.sub(r'IMAGEN_GENERADA:\S+', '', mensaje)
-    texto_limpio = re.sub(r'IMAGEN_PATH:\S+', '', texto_limpio)
-    texto_limpio = re.sub(r'https://mermaid\.ink/img/\S+', '📊', texto_limpio)
+    texto_limpio = re.sub(r'```mermaid\n.*?\n```', '📊', mensaje, flags=re.DOTALL)
     texto_limpio = re.sub(r'\n{3,}', '\n\n', texto_limpio).strip()
     if not texto_limpio:
         texto_limpio = "📊"
