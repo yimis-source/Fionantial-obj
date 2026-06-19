@@ -1,14 +1,16 @@
 import os
+from pathlib import Path
 from dotenv import load_dotenv
 
-load_dotenv()
+dotenv_path = Path(__file__).resolve().parent.parent / ".env"
+load_dotenv(dotenv_path=dotenv_path)
 
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
-LLM_PROVIDER = os.getenv("LLM_PROVIDER", "anthropic")
-DEFAULT_MODEL = os.getenv("LLM_MODEL", "claude-sonnet-4-20250514")
+LLM_PROVIDER = os.getenv("LLM_PROVIDER", "groq")
+DEFAULT_MODEL = os.getenv("LLM_MODEL", "llama-3.3-70b-versatile")
 FALLBACK_MODEL = os.getenv("FALLBACK_MODEL", "llama-3.3-70b-versatile")
 
 TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID")

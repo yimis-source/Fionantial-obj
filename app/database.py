@@ -109,6 +109,11 @@ def init_db():
         );
     """)
 
+    try:
+        conn.execute("ALTER TABLE conversaciones ADD COLUMN resumen TEXT")
+    except sqlite3.OperationalError:
+        pass
+
     conn.commit()
     conn.close()
 

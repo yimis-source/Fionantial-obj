@@ -22,10 +22,14 @@ def write_google_sheet(
     range_name: str,
     values: list,
 ) -> str:
-    result = write_sheet(spreadsheet_id, range_name, values)
-    updated_cells = result.get("updatedCells", 0)
-    updated_range = result.get("updatedRange", range_name)
-    return (
-        "Google Sheet actualizado correctamente. "
-        f"Rango: {updated_range}. Celdas actualizadas: {updated_cells}."
-    )
+    from tools.google_sheets_client import get_sheet_error_message
+    try:
+        result = write_sheet(spreadsheet_id, range_name, values)
+        updated_cells = result.get("updatedCells", 0)
+        updated_range = result.get("updatedRange", range_name)
+        return (
+            "Google Sheet actualizado correctamente. "
+            f"Rango: {updated_range}. Celdas actualizadas: {updated_cells}."
+        )
+    except Exception as e:
+        return f"Error escribiendo Google Sheet: {get_sheet_error_message(e)}"

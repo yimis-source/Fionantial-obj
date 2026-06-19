@@ -308,16 +308,43 @@ class LLMClient:
             }
         return result
 
+    def _parse_text_function_calls(self, text: str) -> list[dict]:
+        import re
+        pattern = r'<function=(\w+)>(.*?)</function>'
+        calls = []
+        for match in re.finditer(pattern, text, re.DOTALL):
+            name = match.group(1)
+            args_raw = match.group(2).strip()
+            try:
+                args = json.loads(args_raw)
+            except json.JSONDecodeError:
+                args = {"raw": args_raw}
+            calls.append({
+                "id": f"txt_{name}_{hash(args_raw) % 100000}",
+                "type": "function",
+                "function": {"name": name, "arguments": json.dumps(args)}
+            })
+        return calls
+
     @traceable(name="process-tools", run_type="chain")
     def process_tools(self, messages, response, current_tools):
-        if not response.get("tool_calls"):
-            return response["content"]
+        tool_calls = response.get("tool_calls", [])
+
+        if not tool_calls:
+            content = response.get("content", "")
+            parsed = self._parse_text_function_calls(content)
+            if parsed:
+                tool_calls = parsed
+                response["tool_calls"] = parsed
+
+        if not tool_calls:
+            return response.get("content", "")
 
         current_messages = list(messages)
-        tool_calls = response["tool_calls"]
 
         for iteration in range(MAX_TOOL_ITERATIONS):
-            assistant_msg = {"role": "assistant", "content": response.get("content", "") or ""}
+            content_text = response.get("content", "") or ""
+            assistant_msg = {"role": "assistant", "content": content_text}
             if tool_calls:
                 assistant_msg["tool_calls"] = [
                     {
@@ -359,7 +386,12 @@ class LLMClient:
             tool_calls = response.get("tool_calls", [])
 
             if not tool_calls:
-                break
+                parsed = self._parse_text_function_calls(response.get("content", ""))
+                if parsed:
+                    tool_calls = parsed
+                    response["tool_calls"] = parsed
+                else:
+                    break
 
         return response.get("content", "")
 

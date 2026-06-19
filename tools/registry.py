@@ -69,22 +69,29 @@ def tool(name: str, description: str, parameters: dict,
         },
         "sheet_name": {
             "type": "string",
-            "description": "Nombre exacto de la hoja (ej: 'Hoja1')."
+            "description": "Nombre de la hoja (ej: 'Hoja1'). Opcional, se auto-detecta si se omite."
         },
         "range": {
             "type": "string",
             "description": "Rango opcional A1 (ej: 'A1:D50'). Si se omite, lee inteligentemente."
         }
     },
-    required=["spreadsheet_id", "sheet_name"]
+    required=["spreadsheet_id"]
 )
-def read_google_sheet(spreadsheet_id: str, sheet_name: str, range: str | None = None) -> str:
+def read_google_sheet(spreadsheet_id: str, sheet_name: str | None = None, range: str | None = None) -> str:
     from tools.google_sheets_table import (
         get_google_sheet_metadata, read_google_sheet_all,
         read_google_sheet_preview, summarize_google_sheet,
         _read_values
     )
     try:
+        if not sheet_name:
+            metadata = json.loads(get_google_sheet_metadata(spreadsheet_id))
+            sheets = metadata.get("sheets", [])
+            if not sheets:
+                return json.dumps({"error": "No se encontraron hojas en el spreadsheet"})
+            sheet_name = sheets[0]["title"]
+
         if range:
             values = _read_values(spreadsheet_id, f"'{sheet_name}'!{range}")
             return json.dumps({"sheet": sheet_name, "range": range, "rows": len(values), "values": values},
@@ -110,7 +117,8 @@ def read_google_sheet(spreadsheet_id: str, sheet_name: str, range: str | None = 
                 "note": "La hoja tiene más de 30 filas. Usa 'range' si necesitas un subconjunto específico."
             }, ensure_ascii=False, indent=2)
     except Exception as e:
-        return f"Error leyendo Google Sheet: {e}"
+        from tools.google_sheets_client import get_sheet_error_message
+        return f"Error leyendo Google Sheet: {get_sheet_error_message(e)}"
 
 
 @tool(

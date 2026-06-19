@@ -117,13 +117,57 @@ def verificar_rate_limit(usuario_id: str):
 
 @app.get("/health")
 async def health():
+    from tools.google_sheets_client import _ensure_env
+    _ensure_env()
+    google_sheets_ok = bool(os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON"))
     return {
         "status": "healthy",
         "version": "2.1.0",
         "llm_configured": bool(ANTHROPIC_API_KEY or GROQ_API_KEY),
+        "llm_provider": os.getenv("LLM_PROVIDER", "groq"),
+        "llm_model": os.getenv("LLM_MODEL", "llama-3.3-70b-versatile"),
         "twilio_configured": bool(TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN),
         "twilio_number": TWILIO_WHATSAPP_NUMBER or "no configurado",
+        "google_sheets_configured": google_sheets_ok,
     }
+
+
+@app.get("/diagnose")
+async def diagnose():
+    from tools.google_sheets_client import _ensure_env
+    results = {}
+
+    _ensure_env()
+    env_var = os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON")
+    results["GOOGLE_SERVICE_ACCOUNT_JSON_exists"] = bool(env_var)
+    results["GOOGLE_SERVICE_ACCOUNT_JSON_length"] = len(env_var) if env_var else 0
+
+    if env_var:
+        try:
+            import json
+            creds = json.loads(env_var)
+            results["json_valid"] = True
+            results["client_email"] = creds.get("client_email", "no encontrado")
+            results["project_id"] = creds.get("project_id", "no encontrado")
+        except json.JSONDecodeError as e:
+            results["json_valid"] = False
+            results["json_error"] = str(e)
+    else:
+        results["json_valid"] = False
+        results["error"] = "GOOGLE_SERVICE_ACCOUNT_JSON no está configurado"
+
+    try:
+        from tools.registry import read_google_sheet
+        test_id = os.getenv("GOOGLE_SHEETS_SPREADSHEET_ID")
+        if test_id:
+            r = read_google_sheet(test_id)
+            results["sheet_test"] = "OK" if "Error" not in r else r[:200]
+        else:
+            results["sheet_test"] = "No GOOGLE_SHEETS_SPREADSHEET_ID configurado"
+    except Exception as e:
+        results["sheet_test"] = str(e)[:200]
+
+    return results
 
 
 @app.post("/webhook/whatsapp")
