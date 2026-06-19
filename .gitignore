@@ -2,9 +2,11 @@ venv/
 __pycache__/
 *.pyc
 .env
-.session_id
 .pytest_cache/
 .vscode/
 *.deb
-*.db
 /tmp/
+data/
+config/google_service_account.json
+*.db
+*.sqlite3

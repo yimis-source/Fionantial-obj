@@ -21,7 +21,7 @@ def chat(messages: list[dict]) -> ChatCompletion:
     )
 
 
-def process_tools(messages, response, session_id=None, save_fn=None):
+def process_tools(messages, response):
     message = response.choices[0].message
     iterations = 0
 
@@ -44,13 +44,6 @@ def process_tools(messages, response, session_id=None, save_fn=None):
         }
         messages.append(assistant_msg)
 
-        if session_id and save_fn:
-            save_fn(
-                session_id, "assistant",
-                content=assistant_msg["content"],
-                tool_calls=assistant_msg["tool_calls"]
-            )
-
         for tool_call in message.tool_calls:
             tool_name = tool_call.function.name
             args = json.loads(tool_call.function.arguments)
@@ -66,13 +59,6 @@ def process_tools(messages, response, session_id=None, save_fn=None):
                 "content": str(tool_result)
             }
             messages.append(tool_msg)
-
-            if session_id and save_fn:
-                save_fn(
-                    session_id, "tool",
-                    content=tool_msg["content"],
-                    tool_call_id=tool_msg["tool_call_id"]
-                )
 
         response = chat(messages)
         message = response.choices[0].message

@@ -1,7 +1,25 @@
 import io
+import importlib
 import traceback
 
 from contextlib import redirect_stdout
+
+_ALLOWED_IMPORTS = {
+    "math",
+    "statistics",
+    "decimal",
+    "datetime",
+    "json",
+    "numpy",
+}
+
+
+def _safe_import(name, globals=None, locals=None, fromlist=(), level=0):
+    root_name = name.split(".", 1)[0]
+    if root_name not in _ALLOWED_IMPORTS:
+        raise ImportError(f"import no permitido: {name}")
+    return importlib.import_module(name)
+
 
 _SAFE_BUILTINS = {
     "abs": abs, "all": all, "any": any, "ascii": ascii, "bin": bin,
@@ -16,6 +34,7 @@ _SAFE_BUILTINS = {
     "round": round, "set": set, "slice": slice, "sorted": sorted,
     "str": str, "sum": sum, "tuple": tuple, "type": type, "zip": zip,
     "True": True, "False": False, "None": None,
+    "__import__": _safe_import,
 }
 
 
