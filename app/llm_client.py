@@ -35,7 +35,7 @@ _INTENT_KEYWORDS = {
     "busqueda_web": ["buscar", "internet", "googlea", "noticias", "TRM", "dólar hoy", "clima", "últimas"],
     "grafico": ["gráfico", "graficar", "grafica", "diagrama", "mermaid", "pastel", "barras", "chart", "/graficar"],
     "calculo_financiero": ["interés", "interes", "amortización", "amortizacion", "cuota", "préstamo", "prestamo"],
-    "sheets": ["sheet", "hoja", "excel", "google sheet", "spreadsheet", "tabla"],
+    "sheets": ["pedido", "orden", "pedido id", "id pedido", "cliente", "sheet", "hoja", "excel", "google sheet", "spreadsheet", "tabla", "venta", "buscar", "consultar", "producto", "zona", "país"],
     "codigo": ["ejecuta", "ejecutar", "python", "código", "codigo", "calcula"],
     "fecha": ["fecha", "hora", "qué día", "qué hora"],
     "documento": ["analiza", "analizar", "archivo", "csv", "documento"],
